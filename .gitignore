@@ -1,0 +1,8 @@
+.DS_Store
+/backups/
+/docs/
+/tests/
+/assets/video/
+/js/background.js
+.env
+.env.*

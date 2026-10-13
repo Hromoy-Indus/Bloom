@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#e9d5cf">
+  <title>BLOOM — звук пробуждает цвет</title>
+  <link rel="stylesheet" href="style.css?v=ambient-scene-2">
+  <script defer src="https://cdn.jsdelivr.net/npm/tone@14.8.49/build/Tone.js"></script>
+  <script defer src="js/voice.js?v=voice-duration-1"></script>
+  <script defer src="js/audio.js?v=voice-duration-1"></script>
+  <script defer src="js/controls.js?v=voice-sustain-1"></script>
+  <script defer src="js/main.js"></script>
+</head>
+<body>
+<main class="world">
+  <header><a class="wordmark" href="./" aria-label="BLOOM — главная">BLOOM<span>звук пробуждает цвет</span></a><div class="global-controls"><label class="harmony-control" for="harmony">Гармония<select id="harmony" data-choice="harmony"><option value="dawn">Рассвет</option><option value="rain" selected>Дождь</option><option value="bloom">Цветение</option></select></label><button id="settings" aria-expanded="false" aria-controls="inspector">НАСТРОЙКИ <span aria-hidden="true">＋</span></button><span id="harmony-pending" hidden>На следующем такте</span></div></header>
+  <div class="scene" id="scene">
+    <img class="artwork" src="assets/images/background.jpg" width="1672" height="941" alt="Акварельная архитектура: арка, центральное кольцо и башня">
+    <!-- Fixed decorative layer in the artwork's coordinates, independent of music. -->
+    <svg class="ambient-scene" viewBox="0 0 1672 941" aria-hidden="true" focusable="false">
+      <defs>
+        <radialGradient id="ambient-dust"><stop stop-color="#aa7f79" stop-opacity=".9"/><stop offset=".4" stop-color="#c9a59a" stop-opacity=".55"/><stop offset="1" stop-color="#c9a59a" stop-opacity="0"/></radialGradient>
+        <radialGradient id="ambient-air"><stop stop-color="#648e9a" stop-opacity=".9"/><stop offset=".4" stop-color="#a9c0bd" stop-opacity=".5"/><stop offset="1" stop-color="#a9c0bd" stop-opacity="0"/></radialGradient>
+        <radialGradient id="ambient-arch-light"><stop stop-color="#f4c5a0" stop-opacity=".8"/><stop offset=".45" stop-color="#ecc1ae" stop-opacity=".3"/><stop offset="1" stop-color="#ecc1ae" stop-opacity="0"/></radialGradient>
+        <radialGradient id="ambient-ring-light"><stop stop-color="#eed1c3" stop-opacity=".65"/><stop offset=".5" stop-color="#dfb4b8" stop-opacity=".3"/><stop offset="1" stop-color="#dfb4b8" stop-opacity="0"/></radialGradient>
+      </defs>
+      <ellipse class="ambient-light" cx="235" cy="375" rx="165" ry="230" fill="url(#ambient-arch-light)"/>
+      <circle class="ambient-light ambient-light-ring" cx="846" cy="366" r="240" fill="url(#ambient-ring-light)"/>
+      <g fill="url(#ambient-dust)">
+        <circle class="ambient-mote" cx="145" cy="230" r="5.6" style="--drift-x:18px; --drift-y:-46px; --cycle:18s; --phase:-5s"/>
+        <circle class="ambient-mote" cx="270" cy="275" r="5" style="--drift-x:-14px; --drift-y:-36px; --cycle:22s; --phase:-17s"/>
+        <circle class="ambient-mote" cx="315" cy="200" r="6" style="--drift-x:12px; --drift-y:-50px; --cycle:20s; --phase:-11s"/>
+        <circle class="ambient-mote" cx="100" cy="430" r="5.2" style="--drift-x:-20px; --drift-y:-40px; --cycle:26s; --phase:-23s"/>
+        <circle class="ambient-mote" cx="710" cy="280" r="5.6" style="--drift-x:16px; --drift-y:-38px; --cycle:21s; --phase:-14s"/>
+        <circle class="ambient-mote" cx="840" cy="235" r="5" style="--drift-x:-12px; --drift-y:-32px; --cycle:17s; --phase:-4s"/>
+        <circle class="ambient-mote" cx="975" cy="305" r="6" style="--drift-x:20px; --drift-y:-48px; --cycle:24s; --phase:-21s"/>
+        <circle class="ambient-mote" cx="950" cy="440" r="5.2" style="--drift-x:-16px; --drift-y:-40px; --cycle:19s; --phase:-9s"/>
+      </g>
+      <g fill="url(#ambient-air)">
+        <circle class="ambient-mote" cx="1450" cy="260" r="5.6" style="--drift-x:14px; --drift-y:-36px; --cycle:18s; --phase:-16s"/>
+        <circle class="ambient-mote" cx="1575" cy="280" r="5" style="--drift-x:-18px; --drift-y:-46px; --cycle:23s; --phase:-6s"/>
+        <circle class="ambient-mote" cx="1380" cy="350" r="6" style="--drift-x:16px; --drift-y:-44px; --cycle:22s; --phase:-19s"/>
+        <circle class="ambient-mote" cx="1610" cy="460" r="5.2" style="--drift-x:-12px; --drift-y:-34px; --cycle:16s; --phase:-10s"/>
+      </g>
+    </svg>
+<svg class="light-map" viewBox="0 0 1672 941" aria-hidden="true">
+          <defs><radialGradient id="warm"><stop stop-color="#fff1be" stop-opacity=".6"/><stop offset="1" stop-color="#f6c27e" stop-opacity="0"/></radialGradient><radialGradient id="rose"><stop stop-color="#fff0ed" stop-opacity=".75"/><stop offset="1" stop-color="#d76488" stop-opacity="0"/></radialGradient><radialGradient id="blue"><stop stop-color="#e6ffff" stop-opacity=".7"/><stop offset="1" stop-color="#91c7d1" stop-opacity="0"/></radialGradient></defs>
+          <ellipse data-glow="atmosphere" cx="235" cy="340" rx="255" ry="320" fill="url(#warm)"/>
+          <circle data-glow="melody" cx="846" cy="366" r="280" fill="url(#rose)"/>
+          <ellipse data-glow="texture" cx="1510" cy="325" rx="165" ry="320" fill="url(#blue)"/>
+        <defs><filter id="melody-waterlight" x="-15%" y="-15%" width="130%" height="130%"><feGaussianBlur stdDeviation="4"/></filter></defs>
+        <g id="melody-waves" transform="translate(846 366)"></g><g id="texture-particles"></g></svg>
+    <div class="voice-layer" tabindex="0" aria-label="Управление голосами">
+      <aside id="inspector" aria-label="Расширенные настройки" hidden>
+        <div class="inspector-heading"><div><small>НАСТРОЙКИ ГОЛОСА</small><h2 id="inspector-title">ATMOSPHERE</h2></div><div class="parameter vocal-identity"><span class="vocal-toolbar-label">04 · голос</span><button id="voice-enabled" aria-pressed="false">Включить VOICE</button></div><button id="close-settings" aria-label="Закрыть настройки">×</button></div>
+<section data-panel="atmosphere" class="advanced-grid" aria-label="Расширенные настройки ATMOSPHERE" hidden>
+<div class="parameter"><label for="atmosphere-attack">Атака <output id="atmosphere-attack-value">2.5 с</output></label>
+<input type="range" id="atmosphere-attack" min="0.2" max="6" step="0.1" value="2.5" data-unit=" с"></div>
+<div class="parameter"><label for="atmosphere-release">Затухание <output id="atmosphere-release-value">4 с</output></label>
+<input type="range" id="atmosphere-release" min="0.5" max="10" step="0.1" value="4" data-unit=" с"></div>
+<div class="parameter"><label for="atmosphere-reverb">Реверберация <output id="atmosphere-reverb-value">42%</output></label>
+<input type="range" id="atmosphere-reverb" min="0" max="65" step="1" value="42" data-unit="%"></div>
+<div class="parameter"><label for="atmosphere-chorus">Хорус <output id="atmosphere-chorus-value">24%</output></label>
+<input type="range" id="atmosphere-chorus" min="0" max="55" step="1" value="24" data-unit="%"></div>
+</section>
+<section data-panel="melody" class="melody-panel" aria-label="Расширенные настройки MELODY" hidden>
+<div class="panel-tabs" role="tablist" aria-label="Настройки MELODY"><button id="tab-music" role="tab" aria-selected="true" aria-controls="panel-music" data-tab="music">Мелодия</button><button id="tab-arp" role="tab" aria-selected="false" aria-controls="panel-arp" data-tab="arp" tabindex="-1">Арпеджиатор</button><button id="tab-effects" role="tab" aria-selected="false" aria-controls="panel-effects" data-tab="effects" tabindex="-1">Эффекты</button></div>
+<div id="panel-music" role="tabpanel" aria-labelledby="tab-music" class="advanced-grid" data-tab-panel="music"><div class="parameter"><label for="auto-pattern">Паттерн</label><select id="auto-pattern" data-choice="autoPattern"><option value="sparse">Разреженный</option><option value="flow">Поток</option><option value="echo" selected>Эхо</option><option value="drift">Дрейф</option></select></div><div class="parameter"><label for="variation">Вариативность <output id="variation-value">20%</output></label><input id="variation" type="range" min="0" max="100" value="20" step="1" data-unit="%" data-parameter="variation"></div><div class="parameter"><label for="octave">Октава</label><select id="octave" data-choice="octave"><option value="-1">−1</option><option value="0" selected>0</option><option value="1">+1</option></select></div><div class="parameter"><label for="note-length">Длина нот</label><select id="note-length" data-choice="noteLength"><option value="short">Короткие</option><option value="medium" selected>Средние</option><option value="long">Длинные</option></select></div></div>
+<div id="panel-arp" role="tabpanel" aria-labelledby="tab-arp" class="advanced-grid" data-tab-panel="arp" hidden><div class="parameter"><label for="arp-direction">Направление</label><select id="arp-direction" data-choice="arp-direction"><option value="up" selected>Вверх</option><option value="down">Вниз</option><option value="up-down">Вверх-вниз</option><option value="random">Случайно</option></select></div><div class="parameter"><label for="arp-rate">Скорость</label><select id="arp-rate" data-choice="arp-rate"><option value="2n">1/2</option><option value="4n">1/4</option><option value="8n" selected>1/8</option></select></div><div class="parameter"><label for="arp-octaves">Октавы</label><select id="arp-octaves" data-choice="arp-octaves"><option value="1" selected>1</option><option value="2">2</option></select></div><div class="parameter"><label for="arp-gate">Длительность <output id="arp-gate-value">65%</output></label><input id="arp-gate" type="range" min="15" max="90" value="65" step="1" data-unit="%" data-parameter="arp-gate"></div></div>
+<div id="panel-effects" role="tabpanel" aria-labelledby="tab-effects" class="advanced-grid" data-tab-panel="effects" hidden><div class="parameter"><label for="melody-attack">Атака <output id="melody-attack-value">0.12 с</output></label>
+<input type="range" id="melody-attack" min="0.03" max="1.5" step="0.01" value="0.12" data-unit=" с"></div>
+<div class="parameter"><label for="melody-release">Затухание <output id="melody-release-value">2.8 с</output></label>
+<input type="range" id="melody-release" min="0.3" max="6" step="0.1" value="2.8" data-unit=" с"></div>
+<div class="parameter"><label for="melody-reverb">Реверберация <output id="melody-reverb-value">32%</output></label>
+<input type="range" id="melody-reverb" min="0" max="65" step="1" value="32" data-unit="%"></div>
+<div class="parameter"><label for="melody-delay">Задержка <output id="melody-delay-value">18%</output></label>
+<input type="range" id="melody-delay" min="0" max="50" step="1" value="18" data-unit="%"></div>
+</div>
+</section>
+<section data-panel="texture" class="advanced-grid" aria-label="Расширенные настройки TEXTURE" hidden>
+<div class="parameter"><label for="texture-character">Характер</label><select id="texture-character" data-choice="textureCharacter"><option value="air">Воздух</option><option value="dust" selected>Пыль</option><option value="shimmer">Мерцание</option></select></div>
+<div class="parameter"><label for="texture-brightness">Яркость <output id="texture-brightness-value">55%</output></label>
+<input type="range" id="texture-brightness" min="0" max="100" step="1" value="55" data-unit="%"></div>
+<div class="parameter"><label for="texture-delay">Задержка <output id="texture-delay-value">30%</output></label>
+<input type="range" id="texture-delay" min="0" max="55" step="1" value="30" data-unit="%"></div>
+<div class="parameter"><label for="texture-reverb">Реверберация <output id="texture-reverb-value">22%</output></label>
+<input type="range" id="texture-reverb" min="0" max="60" step="1" value="22" data-unit="%"></div>
+</section>
+<section data-panel="voice" class="vocal-panel" aria-label="Настройки VOICE" hidden>
+<div class="vocal-toolbar">
+
+<div class="parameter"><label for="voice-mode">Режим</label><select id="voice-mode" data-choice="voice-mode"><option value="notes">Ноты</option><option value="auto">Автоматически</option><option value="atmosphere">Атмосфера</option></select></div>
+<div class="parameter" data-vocal-notes-only><label for="voice-sample">Сэмпл</label><select id="voice-sample" data-choice="voice-sample"><option value="a">01 · Эфирный</option><option value="b">02 · Мягкий B</option><option value="c">03 · Мягкий C</option></select></div>
+<div class="parameter vocal-keyboard-choice"><label for="keyboard-target">Клавиатура</label><select id="keyboard-target"><option value="melody">MELODY</option><option value="voice">VOICE</option></select></div>
+</div>
+<div class="advanced-grid vocal-parameters">
+<div class="parameter"><label for="voice-volume">Громкость <output id="voice-volume-value">55%</output></label><input type="range" id="voice-volume" min="0" max="150" step="1" value="55" data-unit="%"></div>
+<div class="parameter"><label for="voice-timbre">Тембр <output id="voice-timbre-value">65%</output></label><input type="range" id="voice-timbre" min="0" max="100" step="1" value="65" data-unit="%"></div>
+<div class="parameter"><label for="voice-reverb">Реверберация <output id="voice-reverb-value">18%</output></label><input type="range" id="voice-reverb" min="0" max="50" step="1" value="18" data-unit="%"></div>
+<div class="parameter" data-vocal-notes-only><label for="voice-attack">Атака <output id="voice-attack-value">0.3 с</output></label><input type="range" id="voice-attack" min="0.02" max="2" step="0.01" value="0.3" data-unit=" с"></div>
+<div class="parameter" data-vocal-notes-only><label for="voice-release">Затухание <output id="voice-release-value">0.8 с</output></label><input type="range" id="voice-release" min="0.1" max="3" step="0.1" value="0.8" data-unit=" с"></div>
+
+<div class="parameter" data-vocal-auto-only hidden><label for="voice-chordDuration">Макс. длительность аккорда <output id="voice-chordDuration-value">4 с</output></label><input type="range" id="voice-chordDuration" min="3" max="5" step="0.1" value="4" data-unit=" с"></div>
+<div class="parameter" data-vocal-auto-only hidden><label for="voice-phrasePause">Пауза между фразами <output id="voice-phrasePause-value">2 с</output></label><input type="range" id="voice-phrasePause" min="0" max="10" step="0.1" value="2" data-unit=" с"></div>
+</div>
+<div class="vocal-performance">
+<div class="vocal-keyboard" data-vocal-manual-only><span class="vocal-keyboard-label">Ноты аккорда · удерживайте клавишу</span><div class="vocal-set-controls" role="group" aria-label="Выбор набора аккорда"><button id="voice-chords-prev" aria-label="Предыдущий набор аккорда">‹</button><span id="voice-chords-page" aria-live="polite">Аккорды 1 / 4</span><button id="voice-chords-next" aria-label="Следующий набор аккорда">›</button><small id="voice-chord-name"></small></div><div id="voice-notes" class="notes" role="group" aria-label="Вокальная клавиатура"></div></div>
+<div class="vocal-track" data-vocal-atmosphere-only hidden><button id="voice-restart">Запустить запись 8580</button><span>23,2 с · без зацикливания</span></div>
+</div>
+<p id="voice-hint" class="vocal-hint" role="status">Включите VOICE и нажмите «Воспроизвести».</p>
+</section>
+      </aside>
+<section class="voice atmosphere" data-voice="atmosphere" aria-label="ATMOSPHERE">
+  <div class="voice-heading"><button class="voice-toggle" data-toggle="atmosphere" aria-pressed="false"><svg viewBox="0 0 80 80" aria-hidden="true"><path d="M14 65V36a26 26 0 0 1 52 0v29M24 65V37a16 16 0 0 1 32 0v28"/><circle cx="40" cy="46" r="4"/></svg><span>ATMOSPHERE</span><small>01 · гармония</small><b data-state="atmosphere">Выкл.</b></button><button class="voice-settings" data-settings="atmosphere" aria-expanded="false" aria-controls="inspector" aria-label="Настройки ATMOSPHERE">Настроить <span aria-hidden="true">＋</span></button></div>
+  <div class="voice-controls"><div class="parameter"><label for="atmosphere-volume">Громкость <output id="atmosphere-volume-value">65%</output></label>
+<input type="range" id="atmosphere-volume" min="0" max="150" step="1" value="65" data-unit="%"></div><div class="parameter"><label for="brightness">Яркость <output id="brightness-value">35%</output></label>
+<input type="range" id="brightness" min="0" max="100" step="1" value="35" data-unit="%"></div></div>
+</section>
+<section class="voice melody" data-voice="melody" aria-label="MELODY">
+  <div class="voice-heading"><button class="voice-toggle" data-toggle="melody" aria-pressed="false"><svg viewBox="0 0 80 80" aria-hidden="true"><circle cx="40" cy="40" r="28"/><circle cx="40" cy="40" r="20"/><circle cx="40" cy="40" r="4"/><path d="M40 3v9m0 56v9"/></svg><span>MELODY</span><small>02 · движение</small><b data-state="melody">Выкл.</b></button><button class="voice-settings" data-settings="melody" aria-expanded="false" aria-controls="inspector" aria-label="Настройки MELODY">Настроить <span aria-hidden="true">＋</span></button><button id="voice-launch" class="voice-launch" aria-expanded="false" aria-controls="inspector" aria-label="Открыть настройки VOICE">VOICE<small>04 · голос</small><span id="voice-state">Выкл.</span></button></div>
+  <div class="voice-controls"><div class="parameter"><label for="melody-volume">Громкость <output id="melody-volume-value">60%</output></label>
+<input type="range" id="melody-volume" min="0" max="150" step="1" value="60" data-unit="%"></div><div class="melody-selects"><label for="mode">Исполнение<select id="mode"><option value="manual">Вручную</option><option value="auto">Автоматически</option><option value="layer">Совместно</option><option value="arp">Арпеджиатор</option></select></label><label for="scale">Гамма<select id="scale"><option value="minor">Ля минор</option><option value="pentatonic" title="Ля минорная пентатоника">Ля пентатоника</option></select></label></div>
+<div class="phrases" role="group" aria-label="Мелодическая фраза"><button data-phrase="0" aria-pressed="true" aria-label="Фраза 1 — Исток">●</button><button data-phrase="1" aria-pressed="false" aria-label="Фраза 2 — Отражение">●</button><button data-phrase="2" aria-pressed="false" aria-label="Фраза 3 — Полёт">●</button><span id="phrase-name">Исток</span></div><div id="notes" class="notes" role="group" aria-label="Ручная клавиатура"></div><p id="mode-hint" class="mode-hint">Играйте сами · клавиши A S D F G H J</p></div>
+</section>
+<section class="voice texture" data-voice="texture" aria-label="TEXTURE">
+  <div class="voice-heading"><button class="voice-toggle" data-toggle="texture" aria-pressed="false"><svg viewBox="0 0 80 80" aria-hidden="true"><path d="M25 68V22h30v46M20 22h40M30 22V12h20v10M40 3v9"/><circle cx="40" cy="40" r="4"/><path d="M33 68V52a7 7 0 0 1 14 0v16"/></svg><span>TEXTURE</span><small>03 · воздух</small><b data-state="texture">Выкл.</b></button><button class="voice-settings" data-settings="texture" aria-expanded="false" aria-controls="inspector" aria-label="Настройки TEXTURE">Настроить <span aria-hidden="true">＋</span></button></div>
+  <div class="voice-controls"><div class="parameter"><label for="texture-volume">Громкость <output id="texture-volume-value">45%</output></label>
+<input type="range" id="texture-volume" min="0" max="150" step="1" value="45" data-unit="%"></div><div class="parameter"><label for="intensity">Плотность <output id="intensity-value">35%</output></label>
+<input type="range" id="intensity" min="0" max="100" step="1" value="35" data-unit="%"></div></div>
+</section>
+    </div>
+  </div>
+  <div class="transport" aria-label="Общее управление">
+    <button id="play" class="play"><svg viewBox="0 0 24 24" aria-hidden="true"><path id="play-icon" d="M8 5l11 7-11 7z"/></svg><span id="play-label">Воспроизвести</span></button>
+    <div class="transport-parameter"><label for="tempo">Темп <output id="tempo-value">70 уд/мин</output></label>
+<input type="range" id="tempo" min="45" max="100" step="1" value="70" data-unit=" уд/мин"></div>
+    <div class="transport-parameter"><label for="master">Общая громкость <output id="master-value">70%</output></label>
+<input type="range" id="master" min="0" max="100" step="1" value="70" data-unit="%"></div>
+    <button id="fade" disabled>Плавное затухание <span aria-hidden="true">↘</span></button>
+  </div>
+  <p id="status" role="status" aria-live="polite">Выберите голоса и нажмите «Воспроизвести». MELODY начинает в режиме «Вручную».</p>
+</main>
+</body>
+</html>
