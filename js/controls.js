@@ -6,6 +6,9 @@ window.BloomControls = class BloomControls {
     this.melodyTab = 'music';
     this.keyboardInstrument = 'melody';
     this.vocalInputs = new Map();
+    this.rhythmKeys = new Set();
+    this.melodyButtonKeys = new Set();
+    this.rhythmKeyPads = { KeyZ: 1, KeyX: 2, KeyC: 3, KeyV: 4 };
     this.vocalSetIndex = 0;
     this.animations = new Map();
     this.melodyWaves = [];
@@ -42,6 +45,7 @@ window.BloomControls = class BloomControls {
     document.querySelectorAll('input[type=range]').forEach(input => input.addEventListener('input', () => {
       this.audio.setParameter(input.dataset.parameter || input.id, Number(input.value));
       if (input.id === 'arp-gate') this.renderMode();
+      if (input.id.startsWith('rhythm-')) this.renderRhythm();
       document.getElementById(input.id + '-value').textContent = input.value + input.dataset.unit;
     }));
     document.querySelectorAll('[data-choice]').forEach(select => select.addEventListener('change', () => {
@@ -55,6 +59,7 @@ window.BloomControls = class BloomControls {
       this.renderMode();
       if (select.dataset.choice === 'harmony') this.renderHarmony(true);
       this.renderVoice();
+      this.renderRhythm();
     }));
     const tabs = Array.from(document.querySelectorAll('[data-tab]'));
     tabs.forEach((button, index) => {
@@ -86,12 +91,10 @@ window.BloomControls = class BloomControls {
       this.renderVoice();
       this.status('Клавиатура: ' + (event.target.value === 'minor' ? 'Ля минор — семь нот.' : 'Ля минорная пентатоника — пять нот.'));
     });
-    document.querySelector('#notes').addEventListener('click', event => {
-      const button = event.target.closest('[data-note]');
-      if (button) this.note(button);
-    });
+    this.bindMelodyNotes();
     document.addEventListener('keydown', event => {
       if (event.key === 'Escape') { this.closeSettings(); return; }
+      if (this.rhythmKeyDown(event)) return;
       if (event.repeat || event.ctrlKey || event.metaKey || event.altKey || /INPUT|TEXTAREA|SELECT/.test(event.target.tagName)) return;
       const index = this.keys.indexOf(event.code);
       if (this.keyboardInstrument === 'voice') {
@@ -104,10 +107,41 @@ window.BloomControls = class BloomControls {
       if (index >= 0 && button) { event.preventDefault(); this.note(button); }
     });
     document.addEventListener('keyup', event => {
+      this.melodyButtonKeys.delete(event.code);
+      this.rhythmKeys.delete(event.code);
+      this.rhythmKeys.delete('button:' + event.code);
       this.releaseVocal('key:' + event.code);
       this.releaseVocal('button:' + event.code);
     });
-    window.addEventListener('blur', () => this.releaseVocalInputs());
+    window.addEventListener('blur', () => { this.rhythmKeys.clear(); this.melodyButtonKeys.clear(); this.releaseVocalInputs(); });
+    const rhythmPads = document.querySelector('#rhythm-pads');
+    rhythmPads.addEventListener('pointerdown', event => {
+      const button = event.target.closest('[data-rhythm-pad]');
+      if (!button || button.disabled || event.button !== 0) return;
+      event.preventDefault();
+      this.rhythmPad(button.dataset.rhythmPad);
+    });
+    rhythmPads.addEventListener('keydown', event => {
+      const button = event.target.closest('[data-rhythm-pad]');
+      if (!button || !['Enter', ' '].includes(event.key)) return;
+      event.preventDefault();
+      const key = 'button:' + event.code;
+      if (button.disabled || event.repeat || this.rhythmKeys.has(key)) return;
+      this.rhythmKeys.add(key); this.rhythmPad(button.dataset.rhythmPad);
+    });
+    const loop = this.audio.rhythm.loop;
+    document.querySelector('#rhythm-loop-length').addEventListener('change', event => { loop.setLength(Number(event.target.value)); this.renderRhythm(); });
+    document.querySelector('#rhythm-loop-quantize').addEventListener('change', event => { loop.setQuantize(event.target.value); this.renderRhythm(); });
+    document.querySelector('#rhythm-loop-rec').addEventListener('click', () => { if (!this.busy) loop.record(); this.renderRhythm(); });
+    document.querySelector('#rhythm-loop-play').addEventListener('click', () => {
+      if (!this.busy) { if (['playing', 'waiting', 'recording'].includes(loop.snapshot().state)) loop.stop(); else loop.play(); }
+      this.renderRhythm();
+    });
+    document.querySelector('#rhythm-loop-clear').addEventListener('click', () => { if (!this.busy) loop.clear(); this.renderRhythm(); });
+    document.querySelector('#rhythm-launch').addEventListener('click', event => this.toggleSettings('rhythm', event.currentTarget));
+    document.querySelector('#rhythm-enabled').addEventListener('click', () => {
+      this.audio.setVoice('rhythm', !this.audio.settings.enabled.rhythm); this.renderRhythm();
+    });
     document.querySelector('#voice-launch').addEventListener('click', event => this.toggleSettings('voice', event.currentTarget));
     document.querySelector('#voice-enabled').addEventListener('click', () => {
       this.audio.setVoice('voice', !this.audio.settings.enabled.voice);
@@ -155,6 +189,32 @@ window.BloomControls = class BloomControls {
     this.renderVoice();
   }
 
+  bindMelodyNotes() {
+    const notes = document.querySelector('#notes');
+    notes.addEventListener('pointerdown', event => {
+      const button = event.target.closest('[data-note]');
+      if (!button || button.disabled || event.button !== 0) return;
+      event.preventDefault();
+      this.note(button);
+    });
+    notes.addEventListener('keydown', event => {
+      const button = event.target.closest('[data-note]');
+      if (!button || !['Enter', ' '].includes(event.key)) return;
+      event.preventDefault(); // Suppress the native click; this path plays once.
+      if (button.disabled || event.repeat || event.isComposing || event.ctrlKey || event.metaKey || event.altKey || this.melodyButtonKeys.has(event.code)) return;
+      this.melodyButtonKeys.add(event.code);
+      this.note(button);
+    });
+    notes.addEventListener('keyup', event => {
+      if (!['Enter', ' '].includes(event.key)) return;
+      event.preventDefault();
+      this.melodyButtonKeys.delete(event.code);
+    });
+    notes.addEventListener('blur', () => this.melodyButtonKeys.clear(), true);
+    // No click handler: pointer-generated and keyboard-generated clicks cannot
+    // retrigger the note. ASDFGHJ still uses the existing document handler.
+  }
+
   resizeScene() {
     const world = document.querySelector('.world');
     const width = world.clientWidth;
@@ -185,6 +245,7 @@ window.BloomControls = class BloomControls {
     });
     document.querySelector('#settings').setAttribute('aria-expanded', String(panelOpen));
     this.renderVoice();
+    this.renderRhythm();
   }
 
   renderNotes() {
@@ -249,6 +310,7 @@ window.BloomControls = class BloomControls {
     panel.hidden = false;
     panel.classList.toggle('melody-inspector', voice === 'melody');
     panel.classList.toggle('vocal-inspector', voice === 'voice');
+    panel.classList.toggle('rhythm-inspector', voice === 'rhythm');
     document.querySelectorAll('[data-panel]').forEach(section => { section.hidden = section.dataset.panel !== voice; });
     document.querySelector('#inspector-title').textContent = voice.toUpperCase();
     this.renderStates();
@@ -318,6 +380,83 @@ window.BloomControls = class BloomControls {
     document.querySelector('#voice-chords-page').textContent = 'Аккорды ' + (this.vocalSetIndex + 1) + ' / ' + count;
     document.querySelector('#voice-chord-name').textContent = this.audio.harmonies[this.vocalBankHarmony].labels[this.vocalSetIndex];
   }
+  rhythmKeyDown(event) {
+    const pad = this.rhythmKeyPads[event.code];
+    if (!pad) return false;
+    const editing = /TEXTAREA|SELECT/.test(event.target.tagName) ||
+      (event.target.tagName === 'INPUT' && event.target.type !== 'range') || event.target.isContentEditable;
+    if (event.repeat || event.isComposing || event.ctrlKey || event.metaKey || event.altKey || editing) return true;
+    event.preventDefault();
+    if (!this.rhythmKeys.has(event.code)) {
+      this.rhythmKeys.add(event.code);
+      this.rhythmPad(pad);
+    }
+    return true; // Dedicated keys never fall through to MELODY or VOICE.
+  }
+  rhythmPad(pad) {
+    if (this.busy || !this.audio.rhythm.triggerPad(pad)) return false;
+    const button = document.querySelector('[data-rhythm-pad="' + pad + '"]');
+    this.animate(button, [{ backgroundColor: '#fff7ef88' }, { backgroundColor: '#e8beca', offset: 0.2 }, { backgroundColor: '#fff7ef88' }],
+      { duration: this.reducedMotion.matches ? 120 : 260, easing: 'ease-out' });
+    return true;
+  }
+  renderRhythm() {
+    const enabled = this.audio.settings.enabled.rhythm;
+    const running = this.audio.running;
+    const pending = running && enabled && this.audio.rhythm.pending;
+    const open = !document.querySelector('#inspector').hidden && this.selectedVoice === 'rhythm';
+    const launcher = document.querySelector('#rhythm-launch');
+    launcher.setAttribute('aria-expanded', String(open));
+    launcher.classList.toggle('active', enabled && running);
+    document.querySelector('#rhythm-state').textContent = !enabled ? 'Выкл.' : !running ? 'Выбран' : pending ? 'Ожидает' : 'Вкл.';
+    const button = document.querySelector('#rhythm-enabled');
+    button.setAttribute('aria-pressed', String(enabled));
+    button.textContent = enabled ? 'Выключить RHYTHM' : 'Включить RHYTHM';
+    button.disabled = this.busy;
+    const settings = this.audio.settings.rhythm;
+    const labels = settings.palette === 'musical' ? ['SOFT KICK', 'SOFT THUD', 'SOFT SHAKE', 'SOFT ECHO'] : ['PULSE', 'DROP', 'DUST', 'BREATH'];
+    document.querySelector('#rhythm-play-mode').value = settings.playMode;
+    document.querySelector('#rhythm-palette').value = settings.palette;
+    for (const id of ['rhythm-mode', 'rhythm-density']) document.getElementById(id).disabled = settings.playMode !== 'auto';
+    document.querySelectorAll('[data-rhythm-pad]').forEach((pad, index) => {
+      pad.disabled = this.busy || !running || !enabled;
+      pad.querySelector('span').textContent = labels[index];
+      pad.setAttribute('aria-label', labels[index] + ', клавиша ' + ['Z','X','C','V'][index]);
+    });
+    if (!running || !enabled) this.rhythmKeys.clear();
+    this.renderRhythmLoop();
+    document.querySelector('#rhythm-hint').textContent = !running ? 'Включите RHYTHM и нажмите «Воспроизвести».' : !enabled ? 'RHYTHM выключен.' : settings.playMode === 'manual' ? 'Ручная игра · Z X C V.' : settings.playMode === 'loop' ? 'LOOP · ручная игра Z X C V остаётся доступной.' : pending ? 'AUTO — на следующем такте. Ручная игра доступна.' : this.audio.rhythm.activeDensity === 0 ? 'AUTO на паузе · играйте Z X C V.' : 'AUTO синхронизирован · ручная игра Z X C V.';
+  }
+
+  renderRhythmLoop() {
+    const loop = this.audio.rhythm.loop, view = loop.snapshot();
+    const panel = document.querySelector('#rhythm-loop');
+    panel.hidden = this.audio.settings.rhythm.playMode !== 'loop';
+    panel.dataset.state = view.state;
+    const labels = { ready: 'READY · Готово к записи', waiting: 'WAITING · На следующем такте', recording: 'RECORDING · Запись', playing: 'PLAYING · Петля звучит', stopped: 'STOPPED · Петля сохранена' };
+    document.querySelector('#rhythm-loop-status').textContent = labels[view.state];
+    const available = !this.busy && loop.canRun();
+    const length = document.querySelector('#rhythm-loop-length'), quantize = document.querySelector('#rhythm-loop-quantize');
+    length.value = String(view.bars); quantize.value = view.quantize;
+    length.disabled = this.busy || view.locked;
+    quantize.disabled = this.busy || view.quantizeLocked;
+    document.querySelector('#rhythm-loop-rec').disabled = !available || view.locked;
+    const play = document.querySelector('#rhythm-loop-play');
+    const active = ['waiting', 'recording', 'playing'].includes(view.state);
+    play.textContent = active ? 'STOP LOOP' : 'PLAY LOOP';
+    play.setAttribute('aria-label', active ? 'STOP LOOP — остановить только петлю или отменить запись' : 'PLAY LOOP — воспроизвести петлю с ближайшего такта');
+    play.disabled = !available || (!active && !view.count);
+    document.querySelector('#rhythm-loop-clear').disabled = this.busy || (!view.count && !active);
+    const progress = document.querySelector('#rhythm-loop-progress');
+    progress.setAttribute('aria-label', view.bar < 0 ? 'Ожидание, тактов: ' + view.bars : 'Такт ' + (view.bar + 1) + ' из ' + view.bars);
+    Array.from(progress.children).forEach((dot, index) => { dot.hidden = index >= view.bars; dot.classList.toggle('active', index === view.bar); });
+    document.querySelector('#rhythm-loop-hint').textContent = !this.audio.running ? 'Сначала включите RHYTHM и нажмите «Воспроизвести» BLOOM.' : !this.audio.settings.enabled.rhythm ? 'Включите RHYTHM для записи и воспроизведения.' : view.message || (view.state === 'waiting' ? 'Дождитесь начала такта. Живые удары доступны сразу.' : view.state === 'recording' ? 'Запись · событий: ' + view.count + '. Играйте Z X C V или пэдами.' : view.count ? 'Событий: ' + view.count + ' · для новой записи или другой длины нажмите CLEAR. Квантование можно менять.' : 'Нажмите REC, дождитесь такта и сыграйте Z X C V.');
+    if (view.quantizePending) {
+      const labels = { off: 'OFF', '8n': '1/8', '16n': '1/16' };
+      document.querySelector('#rhythm-loop-hint').textContent += ' Квантование ' + labels[view.quantize] + ' — со следующей безопасной петли (сейчас ' + labels[view.activeQuantize] + ').';
+    }
+  }
+
   renderVoice() {
     const vocal = this.audio.vocal;
     const settings = vocal.settings;
@@ -375,7 +514,7 @@ window.BloomControls = class BloomControls {
       button.disabled = this.busy || !playing || !enabled || !vocal.ready || settings.mode !== 'notes';
       button.setAttribute('aria-pressed', String(vocal.players.has(button.dataset.vocalNote)));
     });
-    const hint = vocal.error || (vocal.loading ? 'Загрузка четырёх вокальных записей…' : !playing ? 'Включите VOICE и нажмите «Воспроизвести».' : !enabled ? 'VOICE выключен.' : settings.mode === 'atmosphere' ? '8580 · 23,2 с · собственная гармония; высота и скорость сохранены.' : settings.mode === 'auto' ? 'Автоматически · ' + (vocal.autoLabel || this.audio.harmonies[this.audio.activeHarmony].labels[0]) + (vocal.samples[settings.sample].sustain ? '' : ' · удержание ограничено длиной сэмпла') : 'До трёх нот одновременно. Клавиатура: ' + this.keyboardInstrument.toUpperCase() + '. Удерживайте клавиши или вокальные кнопки.');
+    const hint = vocal.error || (vocal.loading ? 'Загрузка четырёх вокальных записей…' : !playing ? 'Включите VOICE и нажмите «Воспроизвести».' : !enabled ? 'VOICE выключен.' : settings.mode === 'atmosphere' ? '8580 · 17,5 с · собственная гармония; высота и скорость сохранены.' : settings.mode === 'auto' ? 'Автоматически · ' + (vocal.autoLabel || this.audio.harmonies[this.audio.activeHarmony].labels[0]) + (vocal.samples[settings.sample].sustain ? '' : ' · удержание ограничено длиной сэмпла') : 'До трёх нот одновременно. Клавиатура: ' + this.keyboardInstrument.toUpperCase() + '. Удерживайте клавиши или вокальные кнопки.');
     document.querySelector('#voice-hint').textContent = hint;
   }
 
@@ -427,6 +566,7 @@ window.BloomControls = class BloomControls {
   }
 
   soundEvent(event) {
+    if (event.type === 'rhythm-state') { this.renderRhythm(); return; }
     if (event.type === 'voice-state' || event.type === 'voice-notes') { this.renderVoice(); return; }
     if (event.type === 'harmony') { this.renderHarmony(true); return; }
     if (event.type === 'phrase') { this.renderPhrase(); return; }
@@ -484,6 +624,7 @@ window.BloomControls = class BloomControls {
     if (this.busy) return;
     this.busy = true;
     this.renderVoice();
+    this.renderRhythm();
     const play = document.querySelector('#play');
     play.disabled = true;
     document.querySelector('#fade').disabled = true;

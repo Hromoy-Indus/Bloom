@@ -3,8 +3,9 @@ window.BloomAudio = class BloomAudio {
   constructor() {
     this.settings = {
       tempo: 70, master: 70, brightness: 35, intensity: 35,
-      volumes: { atmosphere: 65, melody: 60, texture: 45, voice: 55 },
-      enabled: { atmosphere: false, melody: false, texture: false, voice: false },
+      volumes: { atmosphere: 65, melody: 60, texture: 45, voice: 55, rhythm: 45 },
+      enabled: { atmosphere: false, melody: false, texture: false, voice: false, rhythm: false },
+      rhythm: { mode: 'heart', density: 35, softness: 70, playMode: 'auto', palette: 'organic' },
       vocal: { chordDuration: 4, phrasePause: 2, mode: 'notes', sample: 'a', timbre: 65, attack: 0.3, release: 0.8, reverb: 18, atmosphereReverb: 0 },
       mode: 'manual', scale: 'minor', phrase: 0,
       harmony: 'rain', autoPattern: 'echo', variation: 20, octave: 0, noteLength: 'medium',
@@ -17,6 +18,7 @@ window.BloomAudio = class BloomAudio {
     };
     this.running = false;
     this.vocal = new BloomVoice(this);
+    this.rhythm = new window.BloomRhythm(this);
     this.nodes = [];
     this.events = [];
     this.generation = 0;
@@ -25,7 +27,7 @@ window.BloomAudio = class BloomAudio {
     this.arpIndex = 0;
     this.harmonyPrepared = false;
     this.debug = new URLSearchParams(location.search).has('debug');
-    this.counts = { atmosphere: 0, auto: 0, arp: 0, manual: 0, texture: 0 };
+    this.counts = { atmosphere: 0, auto: 0, arp: 0, manual: 0, texture: 0, rhythm: 0 };
     // Relative tonal centres share natural notes, making transitions compatible.
     this.harmonies = {
       dawn: { labels: ['Cmaj9', 'Fmaj7', 'Am7', 'Gsus2'], velocity: 0.42, space: 1,
@@ -92,7 +94,7 @@ window.BloomAudio = class BloomAudio {
     await Tone.start();
     try {
       this.generation++;
-      this.counts = { atmosphere: 0, auto: 0, arp: 0, manual: 0, texture: 0 };
+      this.counts = { atmosphere: 0, auto: 0, arp: 0, manual: 0, texture: 0, rhythm: 0 };
       this.activePhrase = this.settings.phrase;
       this.activeHarmony = this.settings.harmony;
       this.harmonyPrepared = false;
@@ -103,7 +105,7 @@ window.BloomAudio = class BloomAudio {
       this.lastNoteDuration = null;
       this.build();
       await Promise.all([this.atmosphereReverb.generate(), this.melodyReverb.generate(), this.textureReverb.generate(),
-        this.vocal.reverb.generate(), this.settings.enabled.voice ? this.vocal.load() : Promise.resolve()]);
+        this.vocal.reverb.generate(), this.rhythm.reverb.generate(), this.settings.enabled.voice ? this.vocal.load() : Promise.resolve()]);
       Tone.Transport.bpm.value = this.settings.tempo;
       Tone.Transport.position = 0;
       // Controls remain available while reverb buffers are prepared: use their latest values.
@@ -143,7 +145,7 @@ window.BloomAudio = class BloomAudio {
       this.output.connect(this.waveform);
     }
     this.channels = {};
-    for (const name of ['atmosphere', 'melody', 'texture', 'voice']) {
+    for (const name of ['atmosphere', 'melody', 'texture', 'voice', 'rhythm']) {
       this.channels[name] = this.keep(new Tone.Channel({ volume: -Infinity, pan: name === 'texture' ? 0.2 : name === 'melody' ? -0.12 : 0 }).connect(this.master));
     }
 
@@ -178,6 +180,7 @@ window.BloomAudio = class BloomAudio {
     // Volume is separate and is calibrated by applyTextureCharacter below.
     this.spark = this.keep(new Tone.PolySynth(Tone.Synth, { volume: -18, oscillator: { type: 'sine' }, envelope: { attack: 0.15, decay: 2, sustain: 0, release: 2 } }).connect(this.textureFilter));
     this.vocal.build();
+    this.rhythm.build();
 
     // Three shared schedules only: conductor, melody clock (AUTO or ARP), texture.
     this.events.push(Tone.Transport.scheduleRepeat(time => this.conductorStep(time), '8n', 0));
@@ -201,7 +204,7 @@ window.BloomAudio = class BloomAudio {
 
   duckHarmony(time) {
     // The prepared long vocal retains its dynamics when Harmony changes.
-    for (const [name, channel] of Object.entries(this.channels)) if (name !== 'voice') channel.volume.linearRampTo(-Infinity, 0.12, time);
+    for (const [name, channel] of Object.entries(this.channels)) if (!['voice', 'rhythm'].includes(name)) channel.volume.linearRampTo(-Infinity, 0.12, time);
   }
 
   commitHarmony(time) {
@@ -231,6 +234,7 @@ window.BloomAudio = class BloomAudio {
     }
     const changed = this.commitHarmony(time);
     this.vocal.autoStep(time);
+    this.rhythm.step(time);
     if (this.settings.enabled.voice && (changed || eighth % 16 === 0)) this.dispatch('voice-notes', {}, time);
     if (!this.settings.enabled.atmosphere || (!changed && eighth % 16 !== 0)) return;
     const mood = this.harmonies[this.activeHarmony];
@@ -382,7 +386,7 @@ window.BloomAudio = class BloomAudio {
   updateChannels(time, duration = 0.3) {
     if (!this.channels) return;
     for (const name of Object.keys(this.channels)) {
-      if (name !== 'voice' && this.harmonyPrepared && time === undefined) continue;
+      if (!['voice', 'rhythm'].includes(name) && this.harmonyPrepared && time === undefined) continue;
       // Volume ramps in linear gain space, including zero. Immediate mute would
       // cut an active waveform before the 300 ms fade and could click.
       this.channels[name].volume.linearRampTo(this.settings.enabled[name] ? this.channelDb(name) : -Infinity, duration, time);
@@ -428,6 +432,7 @@ window.BloomAudio = class BloomAudio {
       if (name === 'texture') { this.spark.releaseAll(); this.air.triggerRelease(); }
     }
     if (name === 'voice') this.vocal.setEnabled(enabled);
+    if (name === 'rhythm') this.rhythm.setEnabled(enabled);
   }
 
   setMode(mode) {
@@ -450,6 +455,9 @@ window.BloomAudio = class BloomAudio {
   }
 
   setChoice(name, value) {
+    if (name === 'rhythm-play-mode') { this.rhythm.setPlayMode(value); return; }
+    if (name === 'rhythm-palette') { this.rhythm.setPalette(value); return; }
+    if (name === 'rhythm-mode') { this.rhythm.setChoice(value); return; }
     if (name.startsWith('voice-')) { this.vocal.setChoice(name.slice(6), value); return; }
     if (name === 'harmony') { this.setHarmony(value); return; }
     const choices = {
@@ -479,6 +487,7 @@ window.BloomAudio = class BloomAudio {
       this.updateChannels();
       return;
     }
+    if (voice === 'rhythm') { this.rhythm.setParameter(parameter, value); return; }
     if (voice === 'voice') { this.vocal.setParameter(parameter, value); return; }
     if (parameter && this.settings.advanced[voice] && parameter in this.settings.advanced[voice]) {
       this.settings.advanced[voice][parameter] = value;
@@ -511,7 +520,16 @@ window.BloomAudio = class BloomAudio {
   playNote(note) {
     if (!this.running || !this.settings.enabled.melody || ['auto', 'arp'].includes(this.settings.mode)) return false;
     if (!this.getNotes().includes(note)) return false;
-    this.manualLead.triggerAttackRelease(note, this.noteDuration(), Tone.now(), 0.45);
+    const context = Tone.getContext();
+    // Bypass lookAhead. PolySynth lazily allocates the first FM voice, so give
+    // that cold hit extra headroom; warm hits also leave room for voice allocation.
+    const quantumSafety = 256 / (context.sampleRate || 44100);
+    const safety = Math.max(this.counts.manual === 0 ? 0.035 : 0.016, quantumSafety);
+    const earliest = (context.immediate ? context.immediate() : Tone.now()) + safety;
+    // Keep rapid chord/sequence input ordered while the first voice warms up.
+    const time = Math.max(earliest, this.counts.manual === 0 ? 0 : this.lastManualStart);
+    this.manualLead.triggerAttackRelease(note, this.noteDuration(), time, 0.45);
+    this.lastManualStart = time;
     this.lastNoteDuration = this.noteDuration();
     this.counts.manual++;
     this.visual('melody', undefined, { note, source: 'manual' });
@@ -526,6 +544,7 @@ window.BloomAudio = class BloomAudio {
   }
 
   async stopEngine(fadeSeconds) {
+    this.rhythm.loop.stop();
     this.output.gain.cancelScheduledValues(Tone.now());
     this.output.gain.rampTo(0, fadeSeconds);
     await new Promise(resolve => setTimeout(resolve, fadeSeconds * 1000 + 80));
@@ -545,6 +564,7 @@ window.BloomAudio = class BloomAudio {
     return {
       context: Tone.getContext().state, transport: Tone.Transport.state,
       vocal: this.vocal.snapshot(),
+      rhythm: { ...this.settings.rhythm, activeMode: this.rhythm.activeMode, activeDensity: this.rhythm.activeDensity, pending: this.rhythm.pending, hits: this.rhythm.hits },
       nodes: this.nodes.length, events: this.events.length,
       rmsDb: this.meter ? this.meter.getValue() : null,
       samplePeak: this.waveform ? Math.max(...Array.from(this.waveform.getValue(), Math.abs)) : null,
@@ -576,6 +596,7 @@ window.BloomAudio = class BloomAudio {
 
   dispose() {
     this.vocal.dispose();
+    this.rhythm.dispose();
     clearInterval(this.debugTimer);
     this.debugTimer = null;
     for (const id of this.events) Tone.Transport.clear(id);

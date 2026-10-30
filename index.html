@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="style.css?v=ambient-scene-2">
   <script defer src="https://cdn.jsdelivr.net/npm/tone@14.8.49/build/Tone.js"></script>
   <script defer src="js/voice.js?v=voice-duration-1"></script>
+  <script defer src="js/rhythm.js"></script>
   <script defer src="js/audio.js?v=voice-duration-1"></script>
   <script defer src="js/controls.js?v=voice-sustain-1"></script>
   <script defer src="js/main.js"></script>
@@ -106,9 +107,41 @@
 </div>
 <div class="vocal-performance">
 <div class="vocal-keyboard" data-vocal-manual-only><span class="vocal-keyboard-label">Ноты аккорда · удерживайте клавишу</span><div class="vocal-set-controls" role="group" aria-label="Выбор набора аккорда"><button id="voice-chords-prev" aria-label="Предыдущий набор аккорда">‹</button><span id="voice-chords-page" aria-live="polite">Аккорды 1 / 4</span><button id="voice-chords-next" aria-label="Следующий набор аккорда">›</button><small id="voice-chord-name"></small></div><div id="voice-notes" class="notes" role="group" aria-label="Вокальная клавиатура"></div></div>
-<div class="vocal-track" data-vocal-atmosphere-only hidden><button id="voice-restart">Запустить запись 8580</button><span>23,2 с · без зацикливания</span></div>
+<div class="vocal-track" data-vocal-atmosphere-only hidden><button id="voice-restart">Запустить запись 8580</button><span>17,5 с · без зацикливания</span></div>
 </div>
 <p id="voice-hint" class="vocal-hint" role="status">Включите VOICE и нажмите «Воспроизвести».</p>
+</section>
+<section data-panel="rhythm" class="rhythm-panel" aria-label="Настройки RHYTHM" hidden>
+<button id="rhythm-enabled" aria-pressed="false">Включить RHYTHM</button>
+<div class="rhythm-choices">
+<div class="parameter"><label for="rhythm-play-mode">Исполнение</label><select id="rhythm-play-mode" data-choice="rhythm-play-mode"><option value="manual">MANUAL</option><option value="auto" selected>AUTO</option><option value="loop">LOOP</option></select></div>
+<div class="parameter"><label for="rhythm-palette">Звуковая палитра</label><select id="rhythm-palette" data-choice="rhythm-palette"><option value="organic">ORGANIC</option><option value="musical">MUSICAL</option></select></div>
+</div>
+<div class="advanced-grid">
+<div class="parameter"><label for="rhythm-volume">Громкость <output id="rhythm-volume-value">45%</output></label><input id="rhythm-volume" type="range" min="0" max="150" value="45" step="1" data-unit="%"></div>
+<div class="parameter"><label for="rhythm-mode">Режим</label><select id="rhythm-mode" data-choice="rhythm-mode"><option value="heart">HEART</option><option value="dust">DUST</option><option value="flow">FLOW</option></select></div>
+<div class="parameter"><label for="rhythm-density">Плотность <output id="rhythm-density-value">35%</output></label><input id="rhythm-density" type="range" min="0" max="100" value="35" step="1" data-unit="%"></div>
+<div class="parameter"><label for="rhythm-softness">Мягкость <output id="rhythm-softness-value">70%</output></label><input id="rhythm-softness" type="range" min="0" max="100" value="70" step="1" data-unit="%"></div>
+</div>
+<div id="rhythm-loop" class="rhythm-loop" data-state="ready" hidden>
+<div class="rhythm-choices">
+<div class="parameter"><label for="rhythm-loop-length">Длина петли</label><select id="rhythm-loop-length"><option value="1">1 такт</option><option value="2">2 такта</option><option value="4">4 такта</option></select></div>
+<div class="parameter"><label for="rhythm-loop-quantize">Квантование</label><select id="rhythm-loop-quantize"><option value="off">OFF</option><option value="8n">1/8</option><option value="16n" selected>1/16</option></select></div>
+</div>
+<div class="loop-actions" role="group" aria-label="Управление записью петли">
+<button type="button" id="rhythm-loop-rec" aria-label="REC — начать запись с ближайшего такта">REC</button>
+<button type="button" id="rhythm-loop-play" aria-label="PLAY LOOP — воспроизвести петлю">PLAY LOOP</button>
+<button type="button" id="rhythm-loop-clear" aria-label="CLEAR — удалить записанную петлю">CLEAR</button>
+</div>
+<div class="loop-feedback"><span id="rhythm-loop-status" role="status">READY · Готово к записи</span><div id="rhythm-loop-progress" role="img" aria-label="Прохождение тактов"><span></span><span hidden></span><span hidden></span><span hidden></span></div></div>
+<p id="rhythm-loop-hint" class="mode-hint">Нажмите REC и дождитесь начала такта.</p>
+</div>
+<div id="rhythm-pads" class="rhythm-pads" role="group" aria-label="Ручная перкуссия RHYTHM">
+<button type="button" data-rhythm-pad="1" aria-label="PULSE, клавиша Z" aria-keyshortcuts="Z" disabled><span>PULSE</span><small>Z</small></button>
+<button type="button" data-rhythm-pad="2" aria-label="DROP, клавиша X" aria-keyshortcuts="X" disabled><span>DROP</span><small>X</small></button>
+<button type="button" data-rhythm-pad="3" aria-label="DUST, клавиша C" aria-keyshortcuts="C" disabled><span>DUST</span><small>C</small></button>
+<button type="button" data-rhythm-pad="4" aria-label="BREATH, клавиша V" aria-keyshortcuts="V" disabled><span>BREATH</span><small>V</small></button>
+</div><p id="rhythm-hint" class="mode-hint" role="status">Включите RHYTHM и нажмите «Воспроизвести».</p>
 </section>
       </aside>
 <section class="voice atmosphere" data-voice="atmosphere" aria-label="ATMOSPHERE">
@@ -118,7 +151,7 @@
 <input type="range" id="brightness" min="0" max="100" step="1" value="35" data-unit="%"></div></div>
 </section>
 <section class="voice melody" data-voice="melody" aria-label="MELODY">
-  <div class="voice-heading"><button class="voice-toggle" data-toggle="melody" aria-pressed="false"><svg viewBox="0 0 80 80" aria-hidden="true"><circle cx="40" cy="40" r="28"/><circle cx="40" cy="40" r="20"/><circle cx="40" cy="40" r="4"/><path d="M40 3v9m0 56v9"/></svg><span>MELODY</span><small>02 · движение</small><b data-state="melody">Выкл.</b></button><button class="voice-settings" data-settings="melody" aria-expanded="false" aria-controls="inspector" aria-label="Настройки MELODY">Настроить <span aria-hidden="true">＋</span></button><button id="voice-launch" class="voice-launch" aria-expanded="false" aria-controls="inspector" aria-label="Открыть настройки VOICE">VOICE<small>04 · голос</small><span id="voice-state">Выкл.</span></button></div>
+  <div class="voice-heading"><button class="voice-toggle" data-toggle="melody" aria-pressed="false"><svg viewBox="0 0 80 80" aria-hidden="true"><circle cx="40" cy="40" r="28"/><circle cx="40" cy="40" r="20"/><circle cx="40" cy="40" r="4"/><path d="M40 3v9m0 56v9"/></svg><span>MELODY</span><small>02 · движение</small><b data-state="melody">Выкл.</b></button><button class="voice-settings" data-settings="melody" aria-expanded="false" aria-controls="inspector" aria-label="Настройки MELODY">Настроить <span aria-hidden="true">＋</span></button><button id="rhythm-launch" class="voice-launch rhythm-launch" aria-expanded="false" aria-controls="inspector" aria-label="Открыть настройки RHYTHM">RHYTHM<small>05 · ритм</small><span id="rhythm-state">Выкл.</span></button><button id="voice-launch" class="voice-launch" aria-expanded="false" aria-controls="inspector" aria-label="Открыть настройки VOICE">VOICE<small>04 · голос</small><span id="voice-state">Выкл.</span></button></div>
   <div class="voice-controls"><div class="parameter"><label for="melody-volume">Громкость <output id="melody-volume-value">60%</output></label>
 <input type="range" id="melody-volume" min="0" max="150" step="1" value="60" data-unit="%"></div><div class="melody-selects"><label for="mode">Исполнение<select id="mode"><option value="manual">Вручную</option><option value="auto">Автоматически</option><option value="layer">Совместно</option><option value="arp">Арпеджиатор</option></select></label><label for="scale">Гамма<select id="scale"><option value="minor">Ля минор</option><option value="pentatonic" title="Ля минорная пентатоника">Ля пентатоника</option></select></label></div>
 <div class="phrases" role="group" aria-label="Мелодическая фраза"><button data-phrase="0" aria-pressed="true" aria-label="Фраза 1 — Исток">●</button><button data-phrase="1" aria-pressed="false" aria-label="Фраза 2 — Отражение">●</button><button data-phrase="2" aria-pressed="false" aria-label="Фраза 3 — Полёт">●</button><span id="phrase-name">Исток</span></div><div id="notes" class="notes" role="group" aria-label="Ручная клавиатура"></div><p id="mode-hint" class="mode-hint">Играйте сами · клавиши A S D F G H J</p></div>

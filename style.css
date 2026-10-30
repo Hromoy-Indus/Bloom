@@ -108,7 +108,7 @@ select { display: block; width: 100%; min-width: 0; max-width: 100%; padding: 6p
 .parameter > label, .transport-parameter > label { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 8px; overflow-wrap: anywhere; }
 .parameter output, .transport-parameter output { float: none; text-align: right; white-space: nowrap; }
 /* When the cover crop would hide an arch/tower control, use a compact overlay. */
-@media (max-width: 900px), (max-aspect-ratio: 7/5), (max-height: 680px), (min-aspect-ratio: 5/2) {
+@media (max-width: 900px), (max-aspect-ratio: 159/100), (max-height: 680px), (min-aspect-ratio: 5/2) {
   header { top: 18px; left: 18px; right: 18px; }
   .wordmark { font-size: 26px; }
   .wordmark span { font-size: 10px; letter-spacing: .8px; }
@@ -144,7 +144,7 @@ select { display: block; width: 100%; min-width: 0; max-width: 100%; padding: 6p
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; }
 }
-@media (min-width: 901px) and (min-aspect-ratio: 141/100) and (max-aspect-ratio: 249/100) and (max-height: 800px) and (min-height: 681px) {
+@media (min-width: 901px) and (min-aspect-ratio: 160/100) and (max-aspect-ratio: 249/100) and (max-height: 800px) and (min-height: 681px) {
   .voice { top: 33%; }
   .voice-heading { padding-top: 0; }
   .voice-toggle svg { width: 28px; height: 28px; margin-bottom: 4px; }
@@ -184,7 +184,7 @@ select { display: block; width: 100%; min-width: 0; max-width: 100%; padding: 6p
 .vocal-hint { margin: 10px 0 0; font-size: 11px; line-height: 1.4; overflow-wrap: anywhere; color: var(--muted); }
 #inspector.vocal-inspector { padding-top: 12px; padding-bottom: 12px; }
 .vocal-inspector .inspector-heading { margin-bottom: 8px; }
-@media (max-width: 900px), (max-aspect-ratio: 7/5), (max-height: 680px), (min-aspect-ratio: 5/2) {
+@media (max-width: 900px), (max-aspect-ratio: 159/100), (max-height: 680px), (min-aspect-ratio: 5/2) {
   .voice-launch { position: static; width: 100%; max-width: 112px; margin: 8px auto 0; }
   .vocal-toolbar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .vocal-keyboard, .vocal-track { grid-column: 1 / -1; }
@@ -281,4 +281,51 @@ select { display: block; width: 100%; min-width: 0; max-width: 100%; padding: 6p
 .vocal-inspector .vocal-parameters > [data-vocal-auto-only] { grid-column: span 3; }
 @media (max-width: 540px) {
   .vocal-inspector .vocal-parameters > [data-vocal-auto-only] { grid-column: 1 / -1; }
+}
+
+/* RHYTHM mirrors VOICE within the existing MELODY heading. */
+.rhythm-launch { left: auto; right: calc(100% + 12px); }
+#inspector.rhythm-inspector { width: min(460px, calc(100% - 32px)); }
+.rhythm-panel .advanced-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+#rhythm-enabled { border: 1px solid #79556544; border-radius: 14px; background: #fff7ef88; padding: 7px 12px; font-size: 11px; margin-bottom: 12px; }
+@media (max-width: 900px), (max-aspect-ratio: 159/100), (max-height: 680px), (min-aspect-ratio: 5/2) {
+  .rhythm-launch { position: static; right: auto; }
+  #inspector.rhythm-inspector { width: 100%; }
+}
+
+/* P1 manual pads stay inside the existing RHYTHM inspector. */
+.rhythm-pads { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; margin-top: 14px; }
+.rhythm-pads button { min-width: 0; min-height: 48px; border: 1px solid #79556555; border-radius: 15px; background: #fff7ef88; padding: 7px 4px; font-size: 11px; touch-action: manipulation; }
+.rhythm-pads small { display: block; margin-top: 5px; color: var(--muted); font-size: 10px; }
+#inspector.rhythm-inspector { max-height: calc(100dvh - 220px); overflow-y: auto; overscroll-behavior: contain; }
+@media (max-width: 540px) {
+  .rhythm-pads { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Independent RHYTHM execution and timbre choices, within the same inspector. */
+.rhythm-choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-bottom: 14px; }
+.rhythm-choices .parameter { margin: 0; min-width: 0; }
+.rhythm-choices select { width: 100%; min-width: 0; }
+.rhythm-pads button span { display: block; line-height: 1.25; overflow-wrap: normal; }
+.rhythm-panel select:disabled, .rhythm-panel input:disabled { opacity: .45; }
+
+/* LOOP stays inside the existing RHYTHM inspector and its scrolling viewport. */
+.rhythm-loop { margin-top: 16px; padding-top: 14px; border-top: 1px solid #79556533; }
+.rhythm-loop .rhythm-choices { margin-bottom: 10px; }
+.loop-actions { display: flex; gap: 7px; flex-wrap: wrap; }
+.loop-actions button { min-height: 36px; padding: 7px 10px; border: 1px solid #79556555; border-radius: 12px; background: #fff7ef88; font-size: 11px; }
+.loop-actions button:disabled { opacity: .45; cursor: default; }
+.loop-actions button:not(:disabled):hover { background: #ead2d5; }
+.loop-actions button:focus-visible { outline: 2px solid #795565; outline-offset: 3px; }
+.loop-feedback { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; font-size: 11px; color: #624550; }
+#rhythm-loop-progress { display: flex; gap: 6px; flex-shrink: 0; }
+#rhythm-loop-progress span { width: 7px; height: 7px; border-radius: 50%; border: 1px solid #906c7b; background: transparent; }
+#rhythm-loop-progress span.active { background: #906c7b; }
+.rhythm-loop[data-state="waiting"] #rhythm-loop-status { color: #775b37; }
+.rhythm-loop[data-state="recording"] #rhythm-loop-status { color: #8a3e53; font-weight: 600; }
+.rhythm-loop[data-state="recording"] #rhythm-loop-progress span.active { background: #a2586b; }
+.rhythm-loop[data-state="playing"] #rhythm-loop-status { color: #366568; }
+
+@media (max-width: 640px) {
+  #inspector.rhythm-inspector:has(#rhythm-loop:not([hidden])) { max-height: calc(100dvh - 300px); }
 }
